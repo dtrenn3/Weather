@@ -35,11 +35,19 @@ class RadarUpdater(private val context: Context) {
             return
         }
         try {
-            val frame = AccuWeatherClient(key, AndroidTransport()).load(place.key)
+            val frame = AccuWeatherClient(key, AndroidTransport())
+                .load(place.key, place.latitude, place.longitude)
             if (!frame.mobileLink.isNullOrBlank() && frame.mobileLink != place.link) {
                 store.saveWidget(
                     widgetId,
-                    com.dtrenn.weather.accu.Place(place.key, place.label, "", ""),
+                    com.dtrenn.weather.accu.Place(
+                        place.key,
+                        place.label,
+                        "",
+                        "",
+                        place.latitude,
+                        place.longitude,
+                    ),
                     frame.mobileLink,
                 )
             }

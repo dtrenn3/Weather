@@ -5,6 +5,8 @@ data class Place(
     val city: String,
     val region: String,
     val countryCode: String,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 ) {
     val label: String
         get() = if (region.isBlank()) city else "$city, $region"

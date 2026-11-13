@@ -54,7 +54,7 @@ class AccuWeatherClient(
         return parsePlace(obj) ?: throw AccuWeatherException.NotFound()
     }
 
-    fun load(locationKey: String): RadarFrame {
+    fun load(locationKey: String, latitude: Double? = null, longitude: Double? = null): RadarFrame {
         val key = locationKey.trim()
         require(key.isNotEmpty()) { "Missing location." }
         val conditionsRoot = getJson(
@@ -66,7 +66,13 @@ class AccuWeatherClient(
         val conditions = (conditionsRoot as? JsonArray)?.firstOrNull() as? JsonObject
             ?: throw AccuWeatherException.NotFound()
         val observation = parseObservation(conditions)
-        val minuteCast = minutePhrase(key)
+        val minuteCast = if (latitude != null && longitude != null &&
+            latitude in -90.0..90.0 && longitude in -180.0..180.0
+        ) {
+            minutePhrase(latitude, longitude)
+        } else {
+            null
+        }
         val imagery = fetchImagery(key)
         return RadarFrame(
             observation = observation,
@@ -78,12 +84,13 @@ class AccuWeatherClient(
         )
     }
 
-    private fun minutePhrase(locationKey: String): String? {
+    private fun minutePhrase(latitude: Double, longitude: Double): String? {
+        val pair = String.format(Locale.US, "%.4f,%.4f", latitude, longitude)
         val body = try {
             getOptional(
                 dataUrl(
-                    "/forecasts/v1/minute/1minute/${encode(locationKey)}",
-                    mapOf("language" to "en-us"),
+                    "/forecasts/v1/minute",
+                    mapOf("q" to pair, "language" to "en-us"),
                 ),
             )
         } catch (_: AccuWeatherException) {
@@ -96,9 +103,9 @@ class AccuWeatherClient(
         } ?: return null
         val summary = (root["Summary"] as? JsonObject)?.let { str(it, "Phrase") }
         if (!summary.isNullOrBlank()) return summary
-        val first = (root["Summaries"] as? JsonArray)
-            ?.firstOrNull() as? JsonObject
-        return first?.let { str(it, "Phrase") }?.takeIf { it.isNotBlank() }
+        val first = (root["Summaries"] as? JsonArray)?.firstOrNull() as? JsonObject ?: return null
+        return listOf("WidgetPhrase", "MinuteText", "ShortPhrase", "BriefPhrase")
+            .firstNotNullOfOrNull { name -> str(first, name) }
     }
 
     private fun fetchImagery(locationKey: String): ImageryResult {
@@ -239,7 +246,20 @@ class AccuWeatherClient(
             ?: region?.let { str(it, "LocalizedName") }
             ?: ""
         val countryCode = country?.let { str(it, "ID") } ?: ""
-        return Place(key, city, regionLabel, countryCode)
+        val position = obj["GeoPosition"] as? JsonObject
+        return Place(
+            key,
+            city,
+            regionLabel,
+            countryCode,
+            position?.let { number(it, "Latitude") },
+            position?.let { number(it, "Longitude") },
+        )
+    }
+
+    private fun number(obj: JsonObject, key: String): Double? {
+        val primitive = obj[key] as? JsonPrimitive ?: return null
+        return primitive.doubleOrNull
     }
 
     private fun parseObservation(obj: JsonObject): Observation {

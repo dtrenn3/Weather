@@ -18,6 +18,8 @@
     <string name="searching">Searching AccuWeather…</string>
     <string name="checking">Checking radar for this city…</string>
     <string name="location_off">Turn location on, or type a city.</string>
+    <string name="location_searching">Finding your location…</string>
+    <string name="location_unavailable">Couldn\'t read a current location. Type a city.</string>
     <string name="location_denied">Location permission is off. Type a city instead.</string>
     <string name="offline">No connection to AccuWeather.</string>
     <string name="setup_title">Radar</string>

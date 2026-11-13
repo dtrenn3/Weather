@@ -4,9 +4,11 @@ import android.Manifest
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
 import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.CancellationSignal
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -19,11 +21,13 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import java.util.concurrent.Executors
+import kotlin.math.abs
 
 class ConnectActivity : AppCompatActivity() {
     private val io = Executors.newSingleThreadExecutor()
     private lateinit var store: ConnectorStore
     private var widgetId: Int? = null
+    private var locationRequest: CancellationSignal? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,6 +58,7 @@ class ConnectActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        locationRequest?.cancel()
         io.shutdownNow()
         super.onDestroy()
     }
@@ -95,7 +100,25 @@ class ConnectActivity : AppCompatActivity() {
         }
         val key = resolveKey() ?: return
         val manager = getSystemService(LocationManager::class.java)
-        val location = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+        val cached = freshFix(manager)
+        if (cached != null) {
+            resolveCoordinates(key, cached)
+            return
+        }
+        val provider = when {
+            manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
+            manager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
+            else -> {
+                showStatus(getString(R.string.location_off))
+                return
+            }
+        }
+        requestFix(manager, provider, key)
+    }
+
+    private fun freshFix(manager: LocationManager): Location? {
+        val now = System.currentTimeMillis()
+        return listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
             .mapNotNull { provider ->
                 try {
                     manager.getLastKnownLocation(provider)
@@ -103,11 +126,42 @@ class ConnectActivity : AppCompatActivity() {
                     null
                 }
             }
+            .filter { abs(now - it.time) <= MAX_FIX_AGE_MS }
             .maxByOrNull { it.time }
-        if (location == null) {
-            showStatus(getString(R.string.location_off))
-            return
+    }
+
+    private fun requestFix(manager: LocationManager, provider: String, key: String) {
+        locationRequest?.cancel()
+        val signal = CancellationSignal()
+        locationRequest = signal
+        setBusy(true)
+        showStatus(getString(R.string.location_searching))
+        try {
+            manager.getCurrentLocation(provider, signal, mainExecutor) { location ->
+                if (isDestroyed || signal.isCanceled) return@getCurrentLocation
+                if (location == null) {
+                    val other = if (provider == LocationManager.NETWORK_PROVIDER) {
+                        LocationManager.GPS_PROVIDER
+                    } else {
+                        null
+                    }
+                    if (other != null && manager.isProviderEnabled(other)) {
+                        requestFix(manager, other, key)
+                    } else {
+                        setBusy(false)
+                        showStatus(getString(R.string.location_unavailable))
+                    }
+                    return@getCurrentLocation
+                }
+                resolveCoordinates(key, location)
+            }
+        } catch (_: SecurityException) {
+            setBusy(false)
+            showStatus(getString(R.string.location_denied))
         }
+    }
+
+    private fun resolveCoordinates(key: String, location: Location) {
         setBusy(true)
         showStatus(getString(R.string.searching))
         io.execute {
@@ -161,7 +215,8 @@ class ConnectActivity : AppCompatActivity() {
         showStatus(getString(R.string.checking))
         io.execute {
             try {
-                val frame = AccuWeatherClient(key, AndroidTransport()).load(place.key)
+                val frame = AccuWeatherClient(key, AndroidTransport())
+                    .load(place.key, place.latitude, place.longitude)
                 store.saveApiKey(key)
                 val id = widgetId
                 if (id != null) {
@@ -170,7 +225,7 @@ class ConnectActivity : AppCompatActivity() {
                     store.saveDefault(place, frame.mobileLink)
                 }
                 RadarRefreshWorker.ensureScheduled(applicationContext)
-                RadarUpdater(applicationContext).refreshAll()
+                RadarRefreshWorker.enqueueNow(applicationContext)
                 runOnUiThread {
                     if (isDestroyed) return@runOnUiThread
                     if (id != null) {
@@ -218,5 +273,6 @@ class ConnectActivity : AppCompatActivity() {
 
     companion object {
         private const val LOCATION_REQUEST = 21
+        private const val MAX_FIX_AGE_MS = 5 * 60 * 1000L
     }
 }

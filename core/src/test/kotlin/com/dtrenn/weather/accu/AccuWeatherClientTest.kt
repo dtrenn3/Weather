@@ -19,14 +19,14 @@ class AccuWeatherClientTest {
             ok(
                 """
                 [
-                  {"Key":"349727","LocalizedName":"New York","AdministrativeArea":{"ID":"NY"},"Country":{"ID":"US"}},
+                  {"Key":"349727","LocalizedName":"New York","AdministrativeArea":{"ID":"NY"},"Country":{"ID":"US"},"GeoPosition":{"Latitude":40.779,"Longitude":-73.969}},
                   {"Key":"","LocalizedName":"Skip me"}
                 ]
                 """.trimIndent(),
             )
         }
         val places = client(transport).searchCities("  New York ")
-        assertEquals(listOf(Place("349727", "New York", "NY", "US")), places)
+        assertEquals(listOf(Place("349727", "New York", "NY", "US", 40.779, -73.969)), places)
         assertEquals("New York, NY", places.single().label)
         assertEquals("Bearer $apiKey", transport.calls.single().second["Authorization"])
     }
@@ -78,9 +78,11 @@ class AccuWeatherClientTest {
                     }]
                     """.trimIndent(),
                 )
-                url.contains("/minute/1minute/") -> ok(
-                    """{"Summary":{"Phrase":"Rain tapering off over the next 20 minutes"}}""",
-                )
+                url.contains("/forecasts/v1/minute?") -> {
+                    assertTrue(url.contains("q=39.9526%2C-75.1652"))
+                    assertFalse(url.contains("/minute/1minute/"))
+                    ok("""{"Summary":{"Phrase":"Rain tapering off over the next 20 minutes"}}""")
+                }
                 url.contains("/imagery/") -> ok(
                     """
                     {
@@ -96,7 +98,7 @@ class AccuWeatherClientTest {
                 else -> HttpBody(404, ByteArray(0))
             }
         }
-        val frame = client(transport).load("350540")
+        val frame = client(transport).load("350540", 39.9526, -75.1652)
         assertEquals(48, frame.observation.temperatureF)
         assertEquals(44, frame.realFeelFOrNull())
         assertEquals("Light rain", frame.observation.summary)
@@ -107,6 +109,36 @@ class AccuWeatherClientTest {
         assertNull(frame.radarProblem)
         assertTrue(transport.calls.none { it.first.contains("apikey=") })
         assertTrue(transport.calls.none { it.first.contains(apiKey) })
+        assertTrue(transport.calls.any { it.first.contains("/forecasts/v1/minute?") })
+    }
+
+    @Test
+    fun minuteCastUsesTheWidgetPhraseWhenTheSummaryIsMissing() {
+        val transport = RouteTransport { url, _ ->
+            when {
+                url.contains("/currentconditions/") -> ok("""[{"WeatherText":"Rain"}]""")
+                url.contains("/forecasts/v1/minute?") -> ok(
+                    """{"Summaries":[{"WidgetPhrase":"Rain starting in 12 min"}]}""",
+                )
+                else -> HttpBody(404, ByteArray(0))
+            }
+        }
+        val frame = client(transport).load("1", 40.0, -75.0)
+        assertEquals("Rain starting in 12 min", frame.minuteCast)
+    }
+
+    @Test
+    fun loadWithoutCoordinatesSkipsMinuteCast() {
+        val transport = RouteTransport { url, _ ->
+            when {
+                url.contains("/currentconditions/") -> ok("""[{"WeatherText":"Clear"}]""")
+                url.contains("/minute") -> ok("""{"Summary":{"Phrase":"Should not be requested"}}""")
+                else -> HttpBody(404, ByteArray(0))
+            }
+        }
+        val frame = client(transport).load("1")
+        assertNull(frame.minuteCast)
+        assertTrue(transport.calls.none { it.first.contains("/forecasts/v1/minute") })
     }
 
     @Test

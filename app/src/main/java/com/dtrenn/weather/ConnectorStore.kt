@@ -5,11 +5,14 @@ import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import com.dtrenn.weather.accu.Place
+import java.util.Locale
 
 data class SavedPlace(
     val key: String,
     val label: String,
     val link: String?,
+    val latitude: Double?,
+    val longitude: Double?,
 )
 
 class ConnectorStore(context: Context) {
@@ -38,6 +41,8 @@ class ConnectorStore(context: Context) {
             .remove("w${widgetId}_key")
             .remove("w${widgetId}_label")
             .remove("w${widgetId}_link")
+            .remove("w${widgetId}_lat")
+            .remove("w${widgetId}_lon")
             .apply()
     }
 
@@ -46,6 +51,8 @@ class ConnectorStore(context: Context) {
             .putString("${prefix}_key", place.key)
             .putString("${prefix}_label", place.label)
             .putString("${prefix}_link", link)
+            .putString("${prefix}_lat", place.latitude?.let { formatCoordinate(it) })
+            .putString("${prefix}_lon", place.longitude?.let { formatCoordinate(it) })
             .apply()
     }
 
@@ -53,8 +60,16 @@ class ConnectorStore(context: Context) {
         val key = prefs.getString("${prefix}_key", null) ?: return null
         val label = prefs.getString("${prefix}_label", null) ?: return null
         if (key.isBlank() || label.isBlank()) return null
-        return SavedPlace(key, label, prefs.getString("${prefix}_link", null))
+        return SavedPlace(
+            key,
+            label,
+            prefs.getString("${prefix}_link", null),
+            prefs.getString("${prefix}_lat", null)?.toDoubleOrNull(),
+            prefs.getString("${prefix}_lon", null)?.toDoubleOrNull(),
+        )
     }
+
+    private fun formatCoordinate(value: Double): String = String.format(Locale.US, "%.4f", value)
 
     companion object {
         private const val API_KEY = "api_key"
