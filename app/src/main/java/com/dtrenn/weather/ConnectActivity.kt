@@ -228,7 +228,9 @@ class ConnectActivity : AppCompatActivity() {
                     RadarUpdater(applicationContext).publish(id, place.label, frame.mobileLink, frame)
                 }
                 RadarRefreshWorker.ensureScheduled(applicationContext)
-                RadarRefreshWorker.enqueueNow(applicationContext)
+                if (id == null) {
+                    RadarRefreshWorker.enqueueNow(applicationContext)
+                }
                 runOnUiThread {
                     if (isDestroyed) return@runOnUiThread
                     if (id != null) {

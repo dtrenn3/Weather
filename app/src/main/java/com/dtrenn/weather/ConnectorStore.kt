@@ -36,6 +36,12 @@ class ConnectorStore(context: Context) {
 
     fun defaultPlace(): SavedPlace? = read("default")
 
+    fun markFrame(widgetId: Int) {
+        prefs.edit().putBoolean(frameKey(widgetId), true).apply()
+    }
+
+    fun hasFrame(widgetId: Int): Boolean = prefs.getBoolean(frameKey(widgetId), false)
+
     fun deleteWidget(widgetId: Int) {
         prefs.edit()
             .remove("w${widgetId}_key")
@@ -43,6 +49,7 @@ class ConnectorStore(context: Context) {
             .remove("w${widgetId}_link")
             .remove("w${widgetId}_lat")
             .remove("w${widgetId}_lon")
+            .remove(frameKey(widgetId))
             .apply()
     }
 
@@ -70,6 +77,8 @@ class ConnectorStore(context: Context) {
     }
 
     private fun formatCoordinate(value: Double): String = String.format(Locale.US, "%.4f", value)
+
+    private fun frameKey(widgetId: Int): String = "w${widgetId}_frame"
 
     companion object {
         private const val API_KEY = "api_key"

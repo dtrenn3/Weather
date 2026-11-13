@@ -57,9 +57,9 @@ class RadarUpdater(private val context: Context) {
             }
             showFrame(widgetId, place.label, frame.mobileLink ?: place.link, frame)
         } catch (error: AccuWeatherException) {
-            showProblem(widgetId, place.label, place.link, error.message ?: context.getString(R.string.offline))
+            keepOrShowProblem(widgetId, place, error.message)
         } catch (_: Exception) {
-            showProblem(widgetId, place.label, place.link, context.getString(R.string.offline))
+            keepOrShowProblem(widgetId, place, null)
         }
     }
 
@@ -102,6 +102,17 @@ class RadarUpdater(private val context: Context) {
             views.setViewVisibility(R.id.message, View.GONE)
         }
         manager.updateAppWidget(widgetId, views)
+        store.markFrame(widgetId)
+    }
+
+    private fun keepOrShowProblem(widgetId: Int, place: SavedPlace, message: String?) {
+        if (store.hasFrame(widgetId)) return
+        showProblem(
+            widgetId,
+            place.label,
+            place.link,
+            message ?: context.getString(R.string.offline),
+        )
     }
 
     private fun showProblem(widgetId: Int, label: String, link: String?, message: String) {
