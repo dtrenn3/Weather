@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Radar widget</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --canvas: #0c0e12;
+      --surface: #12151b;
+      --ink: #f4f6f8;
+      --muted: #b7c0cb;
+      --accent: #ff7a1a;
+      --gold: #f3d7a1;
+      --chip: #2c261c;
+      --radius: 28px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(900px 420px at 20% -10%, rgba(255, 122, 26, 0.16), transparent 60%),
+        #07080b;
+      color: var(--ink);
+      font-family: Roboto, "Segoe UI", sans-serif;
+      font-variant-numeric: tabular-nums;
+    }
+    main {
+      display: flex;
+      gap: 48px;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 48px 32px 64px;
+      flex-wrap: wrap;
+    }
+    h1 {
+      width: 100%;
+      margin: 0 0 8px;
+      text-align: center;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    .lede {
+      width: 100%;
+      margin: 0 0 12px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.4;
+    }
+    .phone {
+      width: 390px;
+      height: 844px;
+      border-radius: 48px;
+      padding: 12px;
+      background: #1a1c20;
+      box-shadow:
+        0 0 0 1px oklch(1 0 0 / 0.12),
+        0 24px 60px oklch(0 0 0 / 0.45);
+    }
+    .screen {
+      position: relative;
+      height: 100%;
+      overflow: hidden;
+      border-radius: 36px;
+      background:
+        linear-gradient(180deg, rgba(8, 12, 20, 0.2), rgba(8, 12, 20, 0.72)),
+        radial-gradient(120% 80% at 50% 100%, #1d3d55, #070b12 62%);
+      padding: 18px 16px 20px;
+    }
+    .screen.connect {
+      background: var(--canvas);
+      padding: 28px 22px;
+    }
+    .status {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 18px;
+    }
+    .clock {
+      font-size: 64px;
+      font-weight: 500;
+      line-height: 0.95;
+      letter-spacing: -1px;
+    }
+    .date {
+      color: var(--muted);
+      margin: 4px 0 18px;
+      font-size: 15px;
+    }
+    .widget {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 1px solid transparent;
+      box-shadow: 0 0 0 1px oklch(1 0 0 / 0.08), 0 12px 32px oklch(0 0 0 / 0.35);
+      margin-bottom: 14px;
+    }
+    .widget.wide { height: 168px; }
+    .widget.tall { height: 332px; }
+    .map {
+      position: absolute;
+      inset: 0;
+      outline: 1px solid oklch(1 0 0 / 0.1);
+      outline-offset: -1px;
+    }
+    .scrim {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 28px 16px 12px;
+      background: linear-gradient(180deg, oklch(0.12 0.01 250 / 0), oklch(0.1 0.01 250 / 0.95));
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .place {
+      flex: 1;
+      font-size: 16px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chip {
+      background: var(--chip);
+      color: var(--gold);
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .temp { font-size: 28px; font-weight: 500; line-height: 1.1; }
+    .widget.tall .temp { font-size: 40px; }
+    .feel { color: var(--gold); font-size: 13px; }
+    .condition { font-size: 14px; }
+    .minute { color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .meta {
+      display: flex;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .meta span { flex: 1; }
+    .refresh {
+      width: 32px;
+      height: 32px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+    }
+    h2 {
+      margin: 0;
+      font-size: 32px;
+    }
+    .hint, .body, label, .note {
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .hint { margin: 6px 0 0; font-size: 14px; }
+    h3 { margin: 28px 0 0; font-size: 22px; font-weight: 400; }
+    .body { margin: 8px 0 0; font-size: 15px; }
+    label {
+      display: block;
+      margin-top: 20px;
+      font-size: 12px;
+    }
+    .field {
+      margin-top: 6px;
+      border: 1px solid oklch(1 0 0 / 0.28);
+      border-radius: 12px;
+      min-height: 52px;
+      padding: 14px 12px;
+      color: var(--ink);
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      margin-top: 8px;
+      min-height: 48px;
+      border-radius: 24px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 500;
+    }
+    button.ghost {
+      margin-top: 16px;
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid oklch(1 0 0 / 0.28);
+    }
+    button.solid {
+      background: var(--accent);
+      color: #1a1008;
+      border: 0;
+    }
+    .city {
+      margin-top: 8px;
+      min-height: 48px;
+      border-radius: 24px;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      display: grid;
+      place-items: center;
+      font-weight: 500;
+    }
+    .link {
+      display: inline-block;
+      margin-top: 20px;
+      color: var(--accent);
+      font-size: 14px;
+    }
+    .caption {
+      width: 100%;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Radar</h1>
+    <p class="lede">Galaxy S26 Ultra home screen. The map below is a layout sample. Live frames load after the AccuWeather key is connected.</p>
+    <div class="phone" aria-label="Home screen">
+      <div class="screen">
+        <div class="status"><span>9:41</span><span>5G</span></div>
+        <div class="clock">9:41</div>
+        <div class="date">Friday, November 13</div>
+        <article class="widget wide">
+          <svg class="map" viewBox="0 0 360 168" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Sample radar map">
+            <rect width="360" height="168" fill="#142433" />
+            <path d="M0 120 C40 90 70 140 120 110 C170 80 190 130 240 100 C290 70 320 120 360 90 L360 168 L0 168 Z" fill="#1c3344" />
+            <circle cx="150" cy="78" r="34" fill="#3dff6a" opacity="0.55" />
+            <circle cx="188" cy="70" r="22" fill="#ffe14a" opacity="0.8" />
+            <circle cx="210" cy="84" r="14" fill="#ff7a1a" opacity="0.9" />
+            <circle cx="222" cy="76" r="7" fill="#ff4d6d" />
+          </svg>
+          <div class="scrim">
+            <div class="row">
+              <div class="place">Philadelphia, PA</div>
+              <div class="chip">Premium</div>
+            </div>
+            <div class="temp">48°</div>
+            <div class="feel">RealFeel® 44°</div>
+            <div class="condition">Light rain</div>
+            <div class="meta"><span>Updated 2:40 PM · AccuWeather</span><div class="refresh" aria-hidden="true">↻</div></div>
+          </div>
+        </article>
+        <article class="widget tall">
+          <svg class="map" viewBox="0 0 360 332" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Large sample radar map">
+            <rect width="360" height="332" fill="#142433" />
+            <path d="M0 230 C50 180 90 250 150 200 C210 150 230 240 290 190 C330 160 350 210 360 180 L360 332 L0 332 Z" fill="#1c3344" />
+            <circle cx="168" cy="150" r="54" fill="#3dff6a" opacity="0.45" />
+            <circle cx="214" cy="132" r="36" fill="#ffe14a" opacity="0.75" />
+            <circle cx="246" cy="156" r="22" fill="#ff7a1a" />
+            <circle cx="262" cy="140" r="10" fill="#ff4d6d" />
+          </svg>
+          <div class="scrim">
+            <div class="row">
+              <div class="place">Philadelphia, PA</div>
+              <div class="chip">Premium</div>
+            </div>
+            <div class="temp">48°</div>
+            <div class="feel">RealFeel® 44°</div>
+            <div class="condition">Light rain</div>
+            <div class="minute">Rain tapering off over the next 20 minutes</div>
+            <div class="meta"><span>Updated 2:40 PM · AccuWeather</span><div class="refresh" aria-hidden="true">↻</div></div>
+          </div>
+        </article>
+      </div>
+    </div>
+    <div class="phone" aria-label="Connect AccuWeather">
+      <div class="screen connect">
+        <div class="status"><span>9:41</span><span>5G</span></div>
+        <h2>Radar</h2>
+        <p class="hint">Choose a city. This widget is added when you save.</p>
+        <h3>Connect AccuWeather</h3>
+        <p class="body">The AccuWeather app sign-in cannot connect this widget. Paste the API key from your AccuWeather developer subscription. That same key is the Cursor connector.</p>
+        <label for="key">API key</label>
+        <div class="field" id="key">••••••••••••</div>
+        <label for="city">City</label>
+        <div class="field" id="city">Philadelphia</div>
+        <button class="ghost" type="button">Use this phone's location</button>
+        <button class="solid" type="button">Find city</button>
+        <div class="city">Philadelphia, PA</div>
+        <a class="link" href="https://developer.accuweather.com/">Subscriptions page</a>
+      </div>
+    </div>
+    <p class="caption">4×2 and 4×4 on a 6.9-inch, 1440×3120 screen. Rounded to the S26 Ultra corner.</p>
+  </main>
+</body>
+</html>

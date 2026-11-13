@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Radar</string>
+    <string name="widget_name">Radar</string>
+    <string name="widget_description">AccuWeather radar for the Galaxy S26 Ultra home screen.</string>
+    <string name="connect_title">Connect AccuWeather</string>
+    <string name="connect_body">The AccuWeather app sign-in cannot connect this widget. Paste the API key from your AccuWeather developer subscription. That same key is the Cursor connector.</string>
+    <string name="hint_launcher">Save a city, then add the Radar widget from the home screen.</string>
+    <string name="hint_widget">Choose a city. This widget is added when you save.</string>
+    <string name="api_key">API key</string>
+    <string name="api_key_saved">API key saved. Paste a new one to replace it.</string>
+    <string name="city">City</string>
+    <string name="use_location">Use this phone\'s location</string>
+    <string name="find_city">Find city</string>
+    <string name="need_key">Paste your AccuWeather API key.</string>
+    <string name="need_city">Enter a city.</string>
+    <string name="no_match">No cities matched that name.</string>
+    <string name="searching">Searching AccuWeather…</string>
+    <string name="checking">Checking radar for this city…</string>
+    <string name="location_off">Turn location on, or type a city.</string>
+    <string name="location_denied">Location permission is off. Type a city instead.</string>
+    <string name="offline">No connection to AccuWeather.</string>
+    <string name="setup_title">Radar</string>
+    <string name="setup_body">Connect AccuWeather to show radar on this screen.</string>
+    <string name="radar_image">AccuWeather radar map</string>
+    <string name="premium">Premium</string>
+    <string name="refresh">Refresh radar</string>
+    <string name="open_subscriptions">Subscriptions page</string>
+    <string name="attribution">AccuWeather</string>
+</resources>

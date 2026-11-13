@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "accuweather": {
+      "url": "https://dataservice.accuweather.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:ACCUWEATHER_API_KEY}"
+      }
+    }
+  }
+}
