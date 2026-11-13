@@ -3,7 +3,6 @@ package com.dtrenn.weather
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
-import android.content.Intent
 
 class RadarWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
@@ -31,14 +30,6 @@ class RadarWidgetProvider : AppWidgetProvider() {
 
     override fun onDisabled(context: Context) {
         RadarRefreshWorker.cancel(context)
-    }
-
-    override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != ACTION_REFRESH) {
-            super.onReceive(context, intent)
-            return
-        }
-        RadarRefreshWorker.enqueueNow(context)
     }
 
     companion object {

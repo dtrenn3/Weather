@@ -26,12 +26,15 @@
         </activity>
 
         <receiver
+            android:name=".RadarRefreshReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".RadarWidgetProvider"
             android:exported="true"
             android:label="@string/widget_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.dtrenn.weather.action.REFRESH" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

@@ -27,6 +27,10 @@ class RadarUpdater(private val context: Context) {
         widgetIds().forEach { id -> refresh(id) }
     }
 
+    fun publish(widgetId: Int, label: String, link: String?, frame: RadarFrame) {
+        showFrame(widgetId, label, link, frame)
+    }
+
     fun refresh(widgetId: Int) {
         val key = store.apiKey()
         val place = store.widget(widgetId) ?: store.defaultPlace()
@@ -144,19 +148,17 @@ class RadarUpdater(private val context: Context) {
         }
         return PendingIntent.getActivity(
             context,
-            widgetId,
+            widgetId + CONNECT_REQUEST,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
 
     private fun openIntent(widgetId: Int, link: String?): PendingIntent {
-        val intent = if (!link.isNullOrBlank()) {
-            Intent(Intent.ACTION_VIEW, Uri.parse(link))
-        } else {
-            Intent(context, ConnectActivity::class.java)
+        if (link.isNullOrBlank()) return connectIntent(widgetId)
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link)).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         return PendingIntent.getActivity(
             context,
             widgetId,
@@ -166,9 +168,9 @@ class RadarUpdater(private val context: Context) {
     }
 
     private fun refreshIntent(widgetId: Int): PendingIntent {
-        val intent = Intent(context, RadarWidgetProvider::class.java).apply {
+        val intent = Intent(context, RadarRefreshReceiver::class.java).apply {
             action = RadarWidgetProvider.ACTION_REFRESH
-            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+            setPackage(context.packageName)
         }
         return PendingIntent.getBroadcast(
             context,
@@ -210,5 +212,6 @@ class RadarUpdater(private val context: Context) {
 
     companion object {
         private const val MAX_EDGE = 480
+        private const val CONNECT_REQUEST = 100_000
     }
 }
